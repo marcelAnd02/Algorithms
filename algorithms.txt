@@ -1,0 +1,824 @@
+ALGORYTMY -- MARCEL MACIEJCZYK
+------------------------------
+
+
+
+
+
+HASZOWANIE
+
+
+#include <bits/stdc++.h>
+
+using namespace std;
+string a;
+int MOD7 = 1000000007, BASE = 997;
+const int N = 1000009;
+int vhash[N], vpow[N];
+
+int rethash(int a, int b)
+{
+    return (MOD7 + vhash[b] - ((long long)vhash[a - 1] * vpow[b - a + 1]) % MOD7) % MOD7;
+}
+
+void cnt_hash()
+{
+    for(int i = 1; i <= a.length(); i++)
+        vhash[i] = (((long long)vhash[i - 1] * BASE) % MOD7 + a[i - 1]) % MOD7;
+}
+
+void cnt_pow()
+{
+    vpow[0] = 1;
+    for(int i = 1; i < N; i++)
+        vpow[i] = ((long long)vpow[i - 1] * BASE) % MOD7;
+}
+
+int main()
+{
+    cin >> a;
+    cnt_pow();
+    cnt_hash();
+    cout << rethash(5, 5) << ' ' << rethash(2, 2);
+
+    return 0;
+}
+
+--------------------------------------------------------------------------------------------------------------------------------------
+KMP
+
+
+#include <bits/stdc++.h>
+
+using namespace std;
+string a, pt;
+const int N = 1000009;
+int pref_suf[N], occur;
+
+void KMP(string St)
+{
+    int t = 0;
+    for(int i = 2; i < St.size(); i++)
+    {
+        while(t > 0 && St[t + 1] != St[i])
+            t = pref_suf[t];
+        if(St[t + 1] == St[i])
+            t++;
+        pref_suf[i] = t;
+    }
+}
+
+int main()
+{
+    cin >> a >> pt; // tekst oraz wzorzec
+    KMP("$" + pt + "$" + a);
+    for(int i = 0; i < pt.length() + a.length() + 2; i++)
+        if(pref_suf[i] == pt.length())
+            occur++;
+    cout << occur; // liczba wystapien wzorca w tekscie
+
+    return 0;
+}
+
+
+--------------------------------------------------------------------------------------------------------------------------------------
+FIND&UNION
+
+
+#include <bits/stdc++.h>
+
+using namespace std;
+int n, m, q;
+const int N = 1000009;
+int F[N];
+
+int fnd(int x)
+{
+    if(F[x] == x)
+        return x;
+    F[x] = fnd(F[x]);
+    return F[x];
+}
+
+void unite(int a, int b)
+{
+    int fth_a = fnd(a);
+    int fth_b = fnd(b);
+    if(fth_a == fth_b)
+        return;
+    F[fth_b] = fth_a;
+}
+
+int main()
+{
+    cin >> n >> m; // liczba elentow i liczba polaczen
+    for(int i = 1; i <= n; i++)
+        F[i] = i;
+    for(int i = 1; i <= m; i++)
+    {
+        int a, b;
+        cin >> a >> b; // polacz dwa elementy
+        unite(a, b);
+    }
+    cin >> q;
+    for(int z = 0; z < q; z++)
+    {
+        int a, b;
+        cin >> a >> b; // czy dwa elementy sa posrednio lub bezposrednio polaczone
+        if(F[a] == F[b])
+            cout << "TAK" << "\n";
+        else
+            cout << "NIE" << "\n";
+    }
+
+
+    return 0;
+}
+
+
+--------------------------------------------------------------------------------------------------------------------------------------
+DRZEWO PRZEDZIAŁOWE PUNKT-PRZEDZIAŁ
+
+
+#include <bits/stdc++.h>
+
+using namespace std;
+int n, q; // liczba elementow zbioru i liczba operacji (dodawan)
+const int Nt = (1 << 21) + 9;
+int BASE = (1 << 20);
+int tree[Nt];
+
+int rn_add(int v, int p, int a, int b, int x)
+{
+    if(a > p || b < p)
+        return tree[v];
+    if(a == b)
+        return tree[v] = tree[v] + x;
+    return tree[v] = rn_add(2*v, p, a, (a + b) / 2, x) + rn_add(2*v + 1, p, (a + b) / 2 + 1, b, x);
+}
+
+int rn_read(int v, int x, int y, int a, int b)
+{
+    if(a > y || b < x)
+        return 0;
+    if(a >= x && b <= y)
+        return tree[v];
+    return rn_read(2*v, x, y, a, (a + b) / 2) + rn_read(2*v + 1, x, y, (a + b) / 2 + 1, b);
+}
+
+void pre_process()
+{
+    for(int i = BASE - 1;  i > 0; i--)
+        tree[i] = tree[2*i] + tree[2*i + 1];
+}
+
+main()
+{
+    cin >> n >> q;
+    for(int i = 0; i < n; i++)
+        cin >> tree[i + BASE]; // poczatkowe wartosci
+    pre_process();
+    for(int z = 0; z < q; z++)
+    {
+        char zn;
+        cin >> zn;
+        if(zn == 'd') // dodaj do elementu wartosc
+        {
+            int pos, val;
+            cin >> pos >> val;
+            rn_add(1, pos, 1, BASE, val);
+        }
+        else // czytaj sume na przedziale
+        {
+            int a, b;
+            cin >> a >> b;
+            cout << rn_read(1, a, b, 1, BASE);
+        }
+        
+    }
+
+
+    return 0;
+}
+
+--------------------------------------------------------------------------------------------------------------------------------------
+DRZEWO WSKAŹNIKOWE PUNKT-PRZEDZIAŁ
+
+
+#include <bits/stdc++.h>
+
+using namespace std;
+int n, q;
+int BASE = (1 << 30);
+
+struct Node
+{
+    Node *left, *right;
+    long long sum;
+    Node() : left(NULL), right(NULL), sum(0) {}
+    ~Node()
+    {
+        delete left;
+        delete right;
+    }
+    Node *L()
+    {
+        if(left == NULL)
+            left = new Node();
+        return left;
+    }
+    Node *R()
+    {
+        if(right == NULL)
+            right = new Node();
+        return right;
+    }
+
+    long long rn_add(int p, int a, int b, long long x)
+    {
+        if(a > p || b < p)
+            return sum;
+        if(a == b)
+            return sum = sum + x;
+        return sum = L() -> rn_add(p, a, (a + b) / 2, x) + R() -> rn_add(p, (a + b) / 2 + 1, b, x);
+    }
+
+    long long rn_read(int x, int y, int a, int b)
+    {
+        if(a > y || b < x)
+            return 0;
+        if(a >= x && b <= y)
+            return sum;
+        return L() -> rn_read(x, y, a, (a + b) / 2) + R() -> rn_read(x, y, (a + b) / 2 + 1, b);
+    }
+};
+
+main()
+{
+    cin >> n >> q;
+    Node tree;
+    for(int z = 0; z < q; z++)
+    {
+        char zn;
+        cin >> zn;
+        if(zn == 'd') // dodaj do elementu wartosc
+        {
+            int pos, val;
+            cin >> pos >> val;
+            tree.rn_add(pos, 1, BASE, val);
+        }
+        else // czytaj sume na przedziale
+        {
+            int a, b;
+            cin >> a >> b;
+            cout << tree.rn_read(a, b, 1, BASE);
+        }
+        
+    }
+
+    return 0;
+}
+
+
+--------------------------------------------------------------------------------------------------------------------------------------
+DRZEWO PRZEDZIAŁ-PRZEDZIAŁ (DODANIE NA PRZEDZIALE I CZYTANIE SUMY Z PRZEDZIAŁU)
+
+
+
+#include <bits/stdc++.h>
+
+using namespace std;
+int n, q;
+const int Nt = (1 << 21) + 9;
+int BASE = (1 << 20);
+tuple<int, bool, int> tree[Nt]; // 0 suma,  1 czy_gwiazdka,  2 add
+
+void tree_push(int v, int rn_b, int rn_f)
+{
+    if(v >= BASE)
+        return;
+    get<1>(tree[v]) = false;
+    get<1>(tree[2*v]) = true;
+    get<1>(tree[2*v + 1]) = true;
+    get<2>(tree[2*v]) += get<2>(tree[v]);
+    get<2>(tree[2*v + 1]) += get<2>(tree[v]);
+    get<0>(tree[v]) += (long long)get<2>(tree[v]) * (rn_f - rn_b + 1);
+    get<2>(tree[v]) = 0;
+}
+
+int rn_add(int v, int x, int y, int a, int b, int val)
+{
+    if(a > y || b < x)
+        return get<0>(tree[v]) + get<2>(tree[v]) * (b - a + 1);
+    if(a >= x && b <= y)
+    {
+        get<1>(tree[v]) = true;
+        get<2>(tree[v]) += val;
+        return get<0>(tree[v]) + get<2>(tree[v]) * (b - a + 1);
+    }
+    if(get<1>(tree[v]))
+        tree_push(v, a, b);
+    return get<0>(tree[v]) = rn_add(2*v, x, y, a, (a + b) / 2, val) + rn_add(2*v + 1, x, y, (a + b) / 2 + 1, b, val);
+}
+
+int rn_read(int v, int x, int y, int a, int b)
+{
+    if(a > y || b < x)
+        return 0;
+    if(a >= x && b <= y)
+        return get<0>(tree[v]) + get<2>(tree[v]) * (b - a + 1);
+    if(get<1>(tree[v]))
+        tree_push(v, a, b);
+    return rn_read(2*v, x, y, a, (a + b) / 2) + rn_read(2*v + 1, x, y, (a + b) / 2 + 1, b);
+}
+
+void pre_process()
+{
+    for(int i = BASE - 1; i > 0; i--)
+        get<0>(tree[i]) = get<0>(tree[2*i]) + get<0>(tree[2*i + 1]);
+}
+
+int main()
+{
+    cin >> n >> q; // liczba elementow i liczba zapytan
+    for(int i = 0; i < n; i++)
+        cin >> get<0>(tree[i + BASE]);
+    pre_process();
+    for(int z = 0; z < q; z++)
+    {
+        char zn;
+        cin >> zn;
+        if(zn == 'd') // dodaj wartosc val na przedziale [a, b]
+        {
+            int a, b, val;
+            cin >> a >> b >> val;
+            rn_add(1, a, b, 1, BASE, val);
+        }
+        else // czytaj sume z przedzialu [a, b]
+        {
+            int a, b;
+            cin >> a >> b;
+            cout << rn_read(1, a, b, 1, BASE) << "\n";
+        }
+        
+    }
+
+    return 0;
+}
+
+
+
+--------------------------------------------------------------------------------------------------------------------------------------
+SILNIE SPÓJNE SKŁADOWE
+
+
+#include <bits/stdc++.h>
+
+using namespace std;
+int n, m;
+const int N = 10009;
+vector<int> G[N], Gt[N]; // graf skierowany i graf transponowany
+stack<int> st;
+vector<bool> vis(N);
+vector< vector<int> > str_comp;
+
+void dfs_st(int v)
+{
+    vis[v] = true;
+    for(auto i : G[v])
+        if(!vis[i])
+            dfs_st(i);
+    st.push(v);
+}
+
+void SCC(int v)
+{
+    str_comp[str_comp.size() - 1].push_back(v);
+    vis[v] = true;
+    for(auto i : Gt[v])
+        if(!vis[i])
+            SCC(i);
+}
+
+int main()
+{
+    cin >> n >> m;
+    for(int i = 0; i < m; i++)
+    {
+        int a, b;
+        cin >> a >> b;
+        G[a].push_back(b);
+        Gt[b].push_back(a);
+    }
+    for(int i = 1; i <= n; i++)
+        if(!vis[i])
+            dfs_st(i);
+    fill(vis.begin(), vis.end(), false);
+    while(!st.empty())
+    {
+        int v = st.top();
+        st.pop();
+        if(!vis[v])
+        {
+            vector<int> p; str_comp.push_back(p);
+            SCC(v);
+        }
+    }
+    cout << str_comp.size() << "\n";
+    for(auto vec : str_comp)
+    {
+        for(auto i : vec)
+            cout << i << ' '; // wierzcholki znajdujace sie w kolejnych silnie spojnych skladowych
+        cout << "\n";
+    }
+
+
+    return 0;
+}
+
+
+--------------------------------------------------------------------------------------------------------------------------------------
+TOPOSORT
+
+
+#include <bits/stdc++.h>
+
+using namespace std;
+int n, m;
+const int N = 10009;
+vector<int> G[N]; // DAG
+vector<int> sort_vert; // wierzcholki posortowane topologicznie
+vector<bool> vis(N);
+
+void toposort(int v)
+{
+    vis[v] = true;
+    for(auto i : G[v])
+        if(!vis[i])
+            toposort(i);
+    sort_vert.push_back(v);
+}
+
+int main()
+{
+    cin >> n >> m;
+    for(int i = 0; i < m; i++)
+    {
+        int a, b;
+        cin >> a >> b;
+        G[a].push_back(b);
+    }
+    for(int i = 1; i <= n; i++)
+        if(!vis[i])
+            toposort(i);
+    reverse(sort_vert.begin(), sort_vert.end());
+    for(auto i : sort_vert)
+        cout << i << ' ';
+
+    return 0;
+}
+
+
+--------------------------------------------------------------------------------------------------------------------------------------
+LCA
+
+
+#include <bits/stdc++.h>
+
+using namespace std;
+int n, q;
+const int N = 1000009, Lg = 21;
+vector<int> T[N];
+int jump[Lg][N], depth[N];
+
+void bfs(int v)
+{
+    queue<int> qu;
+    qu.push(v);
+    depth[v] = 1;
+    while(!qu.empty())
+    {
+        v = qu.front();
+        qu.pop();
+        for(auto i : T[v])
+            if(depth[i] == 0)
+            {
+                jump[0][i] = v;
+                depth[i] = depth[v] + 1;
+                qu.push(i);
+            }
+        for(int i = 1; i <= 20; i++)
+            jump[i][v] = jump[i - 1][jump[i - 1][v]];
+    }
+}
+
+int dpt_set(int v, int dest)
+{
+    for(int i = 20; i >= 0; i--)
+        if(depth[jump[i][v]] >= dest)
+            v = jump[i][v];
+    return v;
+}
+
+int LCA(int a, int b)
+{
+    for(int i = 20; i >= 0; i--)
+    {
+        if(jump[i][a] != jump[i][b])
+        {
+            a = jump[i][a];
+            b = jump[i][b];
+        }
+    }
+    if(jump[0][a] == jump[0][b] && a != b)
+        return jump[0][a];
+    return a;
+}
+
+int main()
+{
+    cin >> n >> q; // liczba wierzcholkow i liczba zapytan
+    for(int i = 0; i < n - 1; i++)
+    {
+        int a, b;
+        cin >> a >> b;
+        T[a].push_back(b);
+        T[b].push_back(a);
+    }
+    bfs(1);
+    for(int z = 0; z < q; z++)
+    {
+        int a, b;
+        cin >> a >> b;
+        if(depth[a] < depth[b])
+            swap(a, b);
+        int s1 = b;
+        int s2 = dpt_set(a, depth[b]);
+        cout << LCA(s1, s2) << "\n";  // LCA wierzcholkow a i b
+    }
+
+    return 0;
+}
+
+
+
+--------------------------------------------------------------------------------------------------------------------------------------
+MST -- ALGORYTM PRIMA
+dla grafu tworzącego jedną spójną składową
+
+
+
+#include <bits/stdc++.h>
+
+using namespace std;
+int n, m;
+const int N = 100009;
+vector< pair<int, int> > G[N];
+bool vis[N];
+
+int MST(int v)
+{
+    priority_queue< pair<int, int> > qu;
+    int conn = 1, sol = 0;
+    while(conn != n)
+    {
+        vis[v] = true;
+        for(auto i : G[v])
+            if(!vis[i.first])
+                qu.push({-i.second, i.first});
+        while(vis[qu.top().second])
+            qu.pop();
+        v = qu.top().second;
+        sol -= qu.top().first;
+        conn++;
+        qu.pop();
+    }
+    return sol;
+}
+
+int main()
+{
+    cin >> n >> m;
+    for(int i = 0; i < m; i++)
+    {
+        int a, b, x;
+        cin >> a >> b >> x;
+        G[a].push_back({b, x});
+        G[b].push_back({a, x});
+    }
+    cout << MST(1);
+
+    return 0;
+}
+
+
+
+--------------------------------------------------------------------------------------------------------------------------------------
+DIJKSTRA
+
+
+#include <bits/stdc++.h>
+
+using namespace std;
+int n, m;
+const int N = 100009;
+vector< pair<int, int> > G[N];
+long long INF = 10000000000000009;
+vector<long long> dist(N);
+bool vis[N];
+
+void dijkstra(int v)
+{
+    fill(dist.begin(), dist.end(), INF);
+    dist[v] = 0;
+    set< pair<long long, int> > s;
+    s.insert({0, v});
+    while(!s.empty())
+    {
+        v = s.begin() -> second;
+        long long curr_dist = s.begin() -> first;
+        s.erase(s.begin());
+        if(vis[v])
+            continue;
+        vis[v] = true;
+        for(auto i : G[v])
+        {
+            long long hlpval = curr_dist + i.second;
+            if(hlpval < dist[i.first])
+            {
+                dist[i.first] = hlpval;
+                s.insert({hlpval, i.first});
+            }
+        }
+    }
+}
+
+int main()
+{
+    cin >> n >> m;
+    for(int i = 0; i < m; i++)
+    {
+        int a, b, x;
+        cin >> a >> b >> x;
+        G[a].push_back({b, x});
+        G[b].push_back({a, x});
+    }
+    dijkstra(1);
+    for(int i = 1; i <= n; i++)
+    {
+        if(dist[i] == INF)
+            cout << "NIE" << "\n"; // wierzcholek nieosiagalny z wierzcholka pierwszego
+        else
+            cout << dist[i] << "\n"; // najkrotsza odleglosc od wierzcholka pierwszego
+        
+    }
+
+    return 0;
+}
+
+
+
+
+--------------------------------------------------------------------------------------------------------------------------------------
+PRZEPŁYWY  --  EDMONDS-KARP
+
+
+#include <bits/stdc++.h>
+
+using namespace std;
+int n, m, p, k; //liczba wierzcholkow, krawedzi, zrodlo i ujscie
+const int N = 509;
+vector<int> G[N];
+int cap[N][N];
+vector<int> path(N);
+
+int bfs(int v)
+{
+    vector<bool> vis(N);
+    fill(path.begin(), path.end(), 0);
+    queue< pair<int, int> > qu;
+    qu.push({v, INT_MAX});
+    while(!qu.empty())
+    {
+        v = qu.front().first;
+        int fl_akt = qu.front().second;
+        qu.pop();
+        vis[v] = true;
+        for(auto i : G[v])
+        {
+            if(!vis[i] && cap[v][i] > 0)
+            {
+                int n_fl = min(fl_akt, cap[v][i]);
+                path[i] = v;
+                if(i == k)
+                    return n_fl;
+                qu.push({i, n_fl});
+            }
+        }
+    }
+    return 0;
+}
+
+int max_flow()
+{
+    int ov_flow = 0;
+    while(true)
+    {
+        int akt_flow = bfs(p);
+        if(akt_flow == 0)
+            break;
+        ov_flow += akt_flow;
+        int cur_vert = k;
+        while(cur_vert != p)
+        {
+            int prev_vert = path[cur_vert];
+            cap[prev_vert][cur_vert] -= akt_flow;
+            cap[cur_vert][prev_vert] += akt_flow;
+            cur_vert = prev_vert;
+        }
+    }
+    return ov_flow;
+}
+
+int main()
+{
+    cin >> n >> m >> p >> k;
+    for(int i = 0; i < m; i++)
+    {
+        int a, b, x; //krawedz miedzy wierzcholkami a i b oraz przepustowosc miedzy nimi
+        cin >> a >> b >> x;
+        G[a].push_back(b);
+        G[b].push_back(a);
+        cap[a][b] = x;
+    }
+    cout << max_flow();
+
+    return 0;
+}
+
+
+
+--------------------------------------------------------------------------------------------------------------------------------------
+FUNKCJA LOW
+
+#include <bits/stdc++.h>
+
+using namespace std;
+int n, m;
+const int N = 100009;
+vector<int> G[N];
+int low[N], preorder[N], pre_counter = 1;
+bool vis[N];
+
+void dfs(int v, int fath)
+{
+    vis[v] = true;
+    preorder[v] = pre_counter;
+    low[v] = pre_counter;
+    pre_counter++;
+    for(auto i : G[v])
+    {
+        if(i == fath)
+            continue;
+        if(vis[i])
+            low[v] = min(low[v], preorder[i]);
+        else
+        {
+            //tu mozna zapamietac drzewo DFS:  T[v].push_back(i);
+            dfs(i, v);
+            low[v] = min(low[v], low[i]);
+        }
+        
+    }
+}
+
+int main()
+{
+    cin >> n >> m;
+    for(int i = 0; i < m; i++)
+    {
+        int a, b;
+        cin >> a >> b;
+        G[a].push_back(b);
+        G[b].push_back(a);
+    }
+    dfs(1, 0);
+    for(int i = 1; i <= n; i++)
+        cout << low[i] << ' ';
+    /*
+    Most to krawedz rozspujniajaca graf po usunieciu (czyli zwiekszajaca liczbe spojnych skladowych)
+    Krawedz (v - ojciec_w_drzewie_DFS) jest mostem gdy prawdziwe jest: preorder[v] == low[v]
+    Dla korzenia drzewa DFS zachodzi powyzszy warunek, jednak nie mozna go liczyc poniewaz nie ma ojca
+
+    Punkt artykulacji to wierzcholek drzewa rozspujniajacy graf po usunieciu (czyli zwiekszjacy liczbe spojnych skladowych)
+    Wierzcholek jest punktem artykulacji gdy:
+    1. jest korzeniem drzewa_DFS i ma conajmniej 2 synow
+    2. jesli wierzcholek v ma conajmniej jednego syna w drzewie_DFS dla ktorego zachodzi low[syn] >= preorder[v]
+    */
+
+    return 0;
+}
+
+
+
+--------------------------------------------------------------------------------------------------------------------------------------
