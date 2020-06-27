@@ -13,7 +13,7 @@ int retrieve_hash(int a, int b)
 
 void calc_hash()
 {
-    for(int i = 1; i <= a.length(); i++)
+    for(int i = 1; i <= word.length(); i++)
         vhash[i] = (((long long)vhash[i - 1] * BASE) % MOD7 + word[i - 1]) % MOD7;
 }
 
