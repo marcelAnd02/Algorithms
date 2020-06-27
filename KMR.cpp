@@ -8,13 +8,15 @@ int hash_KMR[Lg][N];
 void form_KMR()
 {
     int layer = 1, num_hash = 27;
-    while((1 << layer) <= n) {
+    while((1 << layer) <= n) 
+    {
         int curr_lng = (1 << layer);
         set< pair<int, int> > hash_pairs;
         map< pair<int, int>, int > new_hash;
         for(int i = 1; i <= n - curr_lng + 1; i++)
             hash_pairs.insert(make_pair(hash_KMR[layer - 1][i], hash_KMR[layer - 1][i + curr_lng / 2]));
-        for(auto it : hash_pairs) {
+        for(auto it : hash_pairs) 
+        {
             new_hash[it] = num_hash;
             num_hash++;
         }
