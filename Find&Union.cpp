@@ -1,9 +1,9 @@
 #include <bits/stdc++.h>
 
 using namespace std;
-int n, m, q;
-const int N = 1e6 + 9;
-int F[N];
+int n, q;
+const int N = 1e5 + 9;
+int F[N], comp_size[N];
 
 int fnd(int x)
 {
@@ -15,33 +15,31 @@ int fnd(int x)
 
 void unite(int a, int b)
 {
-    int fth_a = fnd(a);
-    int fth_b = fnd(b);
-    if(fth_a == fth_b)
+    int rep_a = fnd(a);
+    int rep_b = fnd(b);
+    if(rep_a == rep_b)
         return;
-    F[fth_b] = fth_a;
+    if(comp_size[rep_a] < comp_size[rep_b])
+        swap(rep_a, rep_b);
+    comp_size[rep_a] += comp_size[rep_b];
+    F[rep_b] = rep_a;
 }
 
 int main()
 {
-    cin >> n >> m; // number of elements and number of connect operations
+    ios_base::sync_with_stdio(false);
+    cin.tie(0); cout.tie(0);
+    cin >> n >> q;
     for(int i = 1; i <= n; i++)
+    {
         F[i] = i;
-    for(int i = 1; i <= m; i++)
-    {
-        int a, b;
-        cin >> a >> b; // connect two elements
-        unite(a, b);
+        comp_size[i] = 1;
     }
-    cin >> q;
-    for(int z = 0; z < q; z++)
+    for(int z = 0; z < q; z++) 
     {
         int a, b;
-        cin >> a >> b; // check if elements are directly or indirectly connected
-        if(F[a] == F[b])
-            cout << "YES" << "\n";
-        else
-            cout << "NO" << "\n";
+        cin >> a >> b;
+        unite(a, b);
     }
 
 
